@@ -1,0 +1,11 @@
+build/
+example/build/
+android/
+ios/
+linux/
+macos/
+web/
+windows/
+lib/main.dart
+*.iml
+.idea/
