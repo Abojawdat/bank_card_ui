@@ -12,7 +12,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: tag has to match pubspec
         run: |
           version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
