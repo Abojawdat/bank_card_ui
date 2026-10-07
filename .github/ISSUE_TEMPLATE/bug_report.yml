@@ -1,0 +1,53 @@
+name: Bug report · بلاغ عن مشكلة
+description: Something draws wrong, crashes, or a card from your API doesn't look right.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. English or Arabic, both are fine. شكراً، تقدر تكتب بالعربي.
+        **Never paste a real card number, name or CVV.** Replace them with fake ones.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened · ماذا حدث
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Your code · الكود
+      description: The widget you used, e.g. `BankCard3D(card: ...)`.
+      render: dart
+  - type: textarea
+    id: json
+    attributes:
+      label: API data · بيانات الـ API
+      description: If the card came from your backend, the JSON for one card with the real data replaced.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: bank_card_3d version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform · المنصة
+      multiple: true
+      options: [Android, iOS, Web, macOS, Windows, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: flutter
+    attributes:
+      label: flutter --version
+      render: shell
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshot or recording · صورة أو فيديو
+      description: Drag it in here.

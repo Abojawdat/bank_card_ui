@@ -11,11 +11,16 @@
 </p>
 
 <p align="center">
+  Built by <a href="https://github.com/Abojawdat"><strong>Mohammad Othman (Abojawdat)</strong></a>
+</p>
+
+<p align="center">
   <a href="https://pub.dev/packages/bank_card_3d"><img alt="pub" src="https://img.shields.io/pub/v/bank_card_3d.svg"></a>
   <a href="https://abojawdat.github.io/bank_card_ui/"><img alt="live demo" src="https://img.shields.io/badge/live%20demo-try%20it%20in%20the%20browser-3D5AFE"></a>
   <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-zero-2ea44f">
   <img alt="platforms" src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20macos%20%7C%20windows%20%7C%20linux-lightgrey">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue"></a>
+  <a href="https://github.com/Abojawdat"><img alt="by Abojawdat" src="https://img.shields.io/badge/by-Abojawdat-C8102E"></a>
 </p>
 
 <p align="center">
@@ -263,6 +268,20 @@ cd example && flutter run
 
 Everything is `CustomPainter` in millimetres on the real ID-1 card. The digits are a hand-drawn embossed typeface (no font files); the chip, hologram, guilloche and brushed-metal textures are paths and gradients. The 3D is `Matrix4` perspective with a stack of edge layers for the thickness. Once a card stops changing, its face is baked into an image, so a resting or floating card costs one image and a few gradients per frame.
 
+## Found a bug? Want something?
+
+[**Open an issue**](https://github.com/Abojawdat/bank_card_ui/issues/new/choose) — there's a short form for bugs and one for ideas, in English or Arabic.
+
+A good bug report has:
+
+- the `bank_card_3d` version and `flutter --version`
+- the platform (Android, iOS, web, macOS, Windows, Linux)
+- the widget code you used
+- **if the card came from your API, the JSON for that card — with real numbers, names and CVVs removed.** A card that draws wrong from your backend is exactly what the parser should learn to read, so send the shape, not the data.
+- a screenshot or screen recording
+
+Pull requests are welcome too. Run `flutter test` and `dart format .` first; CI checks both.
+
 ## Releasing
 
 Bump `version:` in `pubspec.yaml`, add a line to `CHANGELOG.md`, push to `main`. GitHub Actions tags `vX.Y.Z` and publishes to pub.dev; the live demo redeploys on every push to `main`.
@@ -316,6 +335,12 @@ BankCard3D(
 `BankCardForm` تملأ البطاقة أثناء الكتابة، وتكتشف نوعها، وتقلبها عند كتابة رمز الأمان، وتتحقق من الرقم (Luhn) والتاريخ. تقبل الأرقام العربية، والرسائل بالعربية تلقائياً تحت اللغة العربية.
 
 [جرّب العرض الحي في المتصفح](https://abojawdat.github.io/bank_card_ui/)
+
+### وجدت مشكلة؟
+
+[افتح issue](https://github.com/Abojawdat/bank_card_ui/issues/new/choose) بالعربية أو الإنجليزية. اذكر رقم إصدار الحزمة، والمنصة، والكود الذي استخدمته، وإذا كانت البطاقة قادمة من الـ API أرسل شكل الـ JSON **بعد حذف أرقام البطاقات والأسماء ورمز الأمان الحقيقية**.
+
+صنعها **محمد عثمان (Abojawdat)**.
 
 </div>
 

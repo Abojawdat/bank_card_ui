@@ -1,0 +1,11 @@
+name: Idea · فكرة
+description: A tier, a look, an animation, a field, anything the package should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like · ماذا تريد
+      description: What you are trying to build and what is missing. A sketch or a photo of a real card helps.
+    validations:
+      required: true

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Live demo
+    url: https://abojawdat.github.io/bank_card_ui/
+    about: Check how it behaves in the browser before reporting.

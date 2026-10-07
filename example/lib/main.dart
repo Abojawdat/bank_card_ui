@@ -136,7 +136,13 @@ class _DemoState extends State<Demo> {
       home: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: const Text('bank_card_3d', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('bank_card_3d', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text('by Mohammad Othman · Abojawdat', style: TextStyle(fontSize: 12, color: Colors.white54)),
+            ],
+          ),
           actions: [
             SegmentedButton<CardLook>(
               showSelectedIcon: false,
