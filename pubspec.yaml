@@ -1,9 +1,9 @@
 name: bank_card_3d
 description: >-
-  Visa and Mastercard cards for Flutter, rendered in real 3D — photoreal or
-  glass, every tier, a wallet stack, a live entry form, and a minting
-  animation. Zero dependencies, all six platforms.
-version: 0.1.0
+  Visa and Mastercard cards for Flutter in real 3D: photoreal or glass, every
+  tier, a wallet stack, a live entry form and a minting animation. Zero
+  dependencies, all six platforms.
+version: 0.1.1
 homepage: https://abojawdat.github.io/bank_card_ui/
 repository: https://github.com/Abojawdat/bank_card_ui
 issue_tracker: https://github.com/Abojawdat/bank_card_ui/issues
