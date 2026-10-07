@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// The two payment networks this package draws.
 enum CardBrand {
   visa('Visa'),
@@ -26,14 +28,12 @@ enum CardBrand {
     return two >= 23 && two <= 26 ? mastercard : null;
   }
 
-  /// reads `visa`, `VISA`, `MasterCard`, `mc`... null for anything else
+  /// reads `visa`, `VISA_DEBIT`, `Visa Platinum`, `MasterCard`, `mc`... null for anything else
   static CardBrand? tryParse(String? name) {
-    final key = name?.toLowerCase().replaceAll(RegExp('[^a-z]'), '');
-    return switch (key) {
-      'visa' => visa,
-      'mastercard' || 'master' || 'mc' => mastercard,
-      _ => null,
-    };
+    final key = name?.toLowerCase().replaceAll(RegExp('[^a-z]'), '') ?? '';
+    if (key.contains('visa')) return visa;
+    if (key.contains('master') || key == 'mc') return mastercard;
+    return null;
   }
 }
 
@@ -96,15 +96,16 @@ class BankCard {
   BankCard({
     required String number,
     String holderName = '',
-    this.expiryMonth,
+    int? expiryMonth,
     int? expiryYear,
     String cvv = '',
     CardBrand? brand,
     this.tier = CardTier.standard,
     this.kind,
   }) : number = normalize(number),
-       holderName = holderName.trim(),
-       expiryYear = expiryYear != null && expiryYear < 100 ? 2000 + expiryYear : expiryYear,
+       holderName = holderName.trim().replaceAll(RegExp(r'\s+'), ' '),
+       expiryMonth = _year(expiryMonth, expiryYear) == null ? null : expiryMonth,
+       expiryYear = _year(expiryMonth, expiryYear),
        cvv = normalize(cvv),
        _brand = brand;
 
@@ -113,8 +114,14 @@ class BankCard {
   final String holderName;
   final int? expiryMonth;
 
-  /// Four digits. A two-digit year passed in is read as 20xx.
+  /// Four digits. A two-digit year passed in is read as 20xx, a broken date becomes null.
   final int? expiryYear;
+
+  static int? _year(int? month, int? year) {
+    if (month == null || year == null || month < 1 || month > 12) return null;
+    final full = year < 100 ? 2000 + year : year;
+    return full < 1990 || full > 2100 ? null : full;
+  }
 
   /// never goes out in [toJson]
   final String cvv;
@@ -245,89 +252,173 @@ class BankCard {
     return card.brand == null ? null : card;
   }
 
-  /// Reads whatever shape your backend sends (stripe, masked_pan, exp_month...). Null if theres no usable number.
-  static BankCard? tryFromJson(Map<String, dynamic> json) {
-    final nested = json['card'];
-    final source = {...json, if (nested is Map) ...nested};
+  /// A card from only the last four digits, for apis that never send more.
+  factory BankCard.lastFour(
+    Object last4, {
+    CardBrand? brand,
+    String holderName = '',
+    int? expiryMonth,
+    int? expiryYear,
+    CardTier tier = CardTier.standard,
+    CardKind? kind,
+  }) => BankCard(
+    number: _tail(_last4(last4)),
+    brand: brand,
+    holderName: holderName,
+    expiryMonth: expiryMonth,
+    expiryYear: expiryYear,
+    tier: tier,
+    kind: kind,
+  );
 
-    String? pick(List<String> keys) {
+  /// Reads whatever your backend sends and never fails.
+  ///
+  /// A map in any shape or nesting, a raw json string, a bare `"4242"`, even null.
+  /// Anything missing or broken comes out as stars, an unknown brand as a plain card.
+  factory BankCard.fromJson(Object? json) {
+    if (json is String && json.trimLeft().startsWith('{')) {
+      try {
+        json = jsonDecode(json);
+      } on FormatException {
+        // not json after all, read it as a number
+      }
+    }
+    return switch (json) {
+      Map map => _read(map),
+      String text => BankCard(number: _tail(text)),
+      num n => BankCard(number: _tail(_last4(n))),
+      _ => BankCard(number: ''),
+    };
+  }
+
+  /// [BankCard.fromJson], but null when theres no number or last4 at all. handy for filtering lists
+  static BankCard? tryFromJson(Object? json) {
+    final card = BankCard.fromJson(json);
+    return card.number.isEmpty ? null : card;
+  }
+
+  static BankCard _read(Map json) {
+    final fields = _flatten(json);
+
+    Object? raw(List<String> keys) {
       for (final key in keys) {
-        final value = source[key];
-        if (value != null && '$value'.trim().isNotEmpty) return '$value'.trim();
+        final value = fields[key];
+        if (value == null || value is Iterable) continue;
+        final text = '$value'.trim().toLowerCase();
+        if (text.isNotEmpty && !_blank.contains(text)) return value;
       }
       return null;
     }
 
-    var number = pick(const [
-      'number',
-      'card_number',
-      'cardNumber',
-      'pan',
-      'masked_pan',
-      'maskedPan',
-      'masked_number',
-      'maskedNumber',
-      'card_no',
-      'cardNo',
-    ]);
-    if (number == null) {
-      final last4 = pick(const ['last4', 'last_4', 'last_four', 'lastFour']);
-      if (last4 == null) return null;
-      final bin = normalize(pick(const ['bin', 'iin', 'first6', 'first_six']) ?? '');
-      final hidden = 16 - bin.length - last4.length;
-      number = '$bin${'•' * (hidden < 0 ? 0 : hidden)}$last4';
+    String? pick(List<String> keys) {
+      final value = raw(keys);
+      return value is num ? '${value is int ? value : value.toInt()}' : value?.toString().trim();
     }
 
-    var (month, year) = parseExpiry(
-      pick(const [
-            'expiry',
-            'expiry_date',
-            'expiryDate',
-            'exp',
-            'exp_date',
-            'expDate',
-            'expires',
-            'expiration',
-            'expiration_date',
-            'valid_thru',
-            'validThru',
-          ]) ??
-          '',
-    );
-    month ??= int.tryParse(
-      normalize(pick(const ['exp_month', 'expiry_month', 'expMonth', 'expiryMonth', 'month']) ?? ''),
-    );
-    year ??= int.tryParse(normalize(pick(const ['exp_year', 'expiry_year', 'expYear', 'expiryYear', 'year']) ?? ''));
+    var number = _tail(pick(_numberKeys) ?? '');
+    if (!number.contains(RegExp(r'\d'))) {
+      final tail = raw(_last4Keys);
+      final last4 = tail == null ? '' : _last4(tail);
+      var bin = normalize(pick(_binKeys) ?? '').replaceAll('•', '');
+      if (bin.length > 8) bin = bin.substring(0, 8);
+      if (last4.isNotEmpty || bin.isNotEmpty) {
+        number = bin + '•' * (16 - bin.length - last4.length).clamp(0, 16) + last4;
+      }
+    }
 
-    final card = BankCard(
+    var (month, year) = parseExpiry(pick(_expiryKeys) ?? '');
+    if (_year(month, year) == null) {
+      month = _int(pick(_monthKeys));
+      year = _int(pick(_yearKeys));
+    }
+
+    final brandText = pick(_brandKeys);
+    final tierText = pick(_tierKeys);
+    return BankCard(
       number: number,
-      holderName:
-          pick(const [
-            'holder_name',
-            'holderName',
-            'cardholder_name',
-            'cardholderName',
-            'card_holder',
-            'cardHolder',
-            'name_on_card',
-            'nameOnCard',
-            'holder',
-            'name',
-          ]) ??
-          '',
+      holderName: pick(_holderKeys) ?? '',
       expiryMonth: month,
       expiryYear: year,
-      brand: CardBrand.tryParse(
-        pick(const ['brand', 'scheme', 'network', 'card_brand', 'cardBrand', 'card_scheme', 'type']),
-      ),
-      tier:
-          CardTier.tryParse(
-            pick(const ['tier', 'level', 'product', 'card_level', 'cardLevel', 'category', 'product_name']),
-          ) ??
-          CardTier.standard,
-      kind: CardKind.tryParse(pick(const ['funding', 'kind', 'card_type', 'cardType', 'type'])),
+      cvv: pick(_cvvKeys) ?? '',
+      brand: CardBrand.tryParse(brandText) ?? CardBrand.tryParse(tierText),
+      tier: CardTier.tryParse(tierText) ?? CardTier.tryParse(brandText) ?? CardTier.standard,
+      kind: CardKind.tryParse(pick(_kindKeys)) ?? CardKind.tryParse(brandText),
     );
-    return card.brand == null ? null : card;
+  }
+
+  // keys compared lowercase with _ - and spaces gone, so card_number, CardNumber and CARD-NUMBER all match
+  static const _numberKeys = [
+    'number', 'cardnumber', 'pan', 'maskedpan', 'maskednumber', 'maskedcardnumber', 'cardno', 'cardnum', //
+    'cardpan', 'primaryaccountnumber', 'displaynumber',
+  ];
+  static const _last4Keys = [
+    'last4', 'lastfour', 'last4digits', 'lastfourdigits', 'lastdigits', 'cardlast4', 'cardlastfour', //
+    'panlast4', 'endingin', 'ending', 'suffix',
+  ];
+  static const _binKeys = ['bin', 'iin', 'first6', 'firstsix', 'first6digits', 'first8', 'cardbin'];
+  static const _expiryKeys = [
+    'expiry', 'expirydate', 'exp', 'expdate', 'expires', 'expiresat', 'expiration', 'expirationdate', //
+    'validthru', 'validthrough', 'validuntil', 'cardexpiry',
+  ];
+  static const _monthKeys = ['expmonth', 'expirymonth', 'expirationmonth', 'cardexpmonth', 'month'];
+  static const _yearKeys = ['expyear', 'expiryyear', 'expirationyear', 'cardexpyear', 'year'];
+  static const _holderKeys = [
+    'holdername', 'cardholdername', 'cardholder', 'nameoncard', 'holder', 'cardname', 'ownername', 'owner', //
+    'customername', 'fullname', 'name',
+  ];
+  static const _brandKeys = [
+    'brand', 'scheme', 'network', 'cardbrand', 'cardscheme', 'cardnetwork', 'paymentbrand', 'paymentnetwork', //
+    'cardtype', 'type', 'issuer',
+  ];
+  static const _tierKeys = [
+    'tier',
+    'level',
+    'product',
+    'cardlevel',
+    'cardproduct',
+    'productname',
+    'category',
+    'cardcategory',
+  ];
+  static const _kindKeys = ['funding', 'fundingtype', 'kind', 'cardkind', 'cardtype', 'type', 'accounttype'];
+  static const _cvvKeys = ['cvv', 'cvc', 'cvv2', 'cvc2', 'securitycode'];
+  static const _blank = {'null', 'none', 'nil', 'undefined', 'unknown', 'n/a', 'na', '-', '--'};
+
+  static Map<String, Object?> _flatten(Map json) {
+    final out = <String, Object?>{};
+    final queue = [(json, 0)];
+    for (var i = 0; i < queue.length; i++) {
+      final (map, depth) = queue[i];
+      for (final MapEntry(:key, :value) in map.entries) {
+        final name = '$key'.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
+        if (value is Map) {
+          // a bank or address name is not the cardholder
+          if (depth < 3 && !RegExp('bank|issuer|merchant|address|shipping').hasMatch(name)) {
+            queue.add((value, depth + 1));
+          }
+        } else {
+          out.putIfAbsent(name, () => value);
+        }
+      }
+    }
+    return out;
+  }
+
+  // anything shorter than a real card is the end of one
+  static String _tail(String raw) {
+    final n = normalize(raw);
+    return n.isEmpty || n.length >= 12 ? n : n.padLeft(16, '•');
+  }
+
+  static String _last4(Object value) {
+    var d = normalize(value is num ? '${value.toInt()}' : '$value').replaceAll('•', '');
+    if (value is num) d = d.padLeft(4, '0');
+    return d.length > 4 ? d.substring(d.length - 4) : d;
+  }
+
+  static int? _int(String? text) {
+    if (text == null) return null;
+    return num.tryParse(text)?.toInt() ?? int.tryParse(normalize(text));
   }
 
   /// The card as snake_case JSON. The CVV is left out on purpose.
@@ -387,8 +478,9 @@ class BankCard {
 
     final parts = RegExp(r'\d+').allMatches(text).map((m) => m[0]!).toList();
     if (parts.length >= 2) {
-      final year = int.parse(parts[1]);
-      return (int.parse(parts[0]), year < 100 ? 2000 + year : year);
+      final yearFirst = parts[0].length == 4;
+      final year = int.parse(yearFirst ? parts[0] : parts[1]);
+      return (int.parse(yearFirst ? parts[1] : parts[0]), year < 100 ? 2000 + year : year);
     }
     if (parts.length == 1 && parts[0].length == 4) {
       return (int.parse(parts[0].substring(0, 2)), 2000 + int.parse(parts[0].substring(2)));

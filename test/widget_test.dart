@@ -145,4 +145,37 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('cards from broken api data all render', (tester) async {
+    final junk = <Object?>[
+      null,
+      '4242',
+      {'last4': '4242'},
+      {'last4': 42, 'holder': 'null'},
+      {'card_number': '', 'expiry': '99/99'},
+      {'pan': '378282246310005'},
+      {'number': '4' * 40, 'name': 'x' * 300},
+      [1, 2, 3],
+    ];
+    for (final json in junk) {
+      final card = BankCard.fromJson(json);
+      for (final look in CardLook.values) {
+        await tester.pumpWidget(
+          app(
+            Column(
+              children: [
+                BankCardView(card: card, look: look),
+                BankCardView(card: card, look: look, side: CardSide.back),
+              ],
+            ),
+          ),
+        );
+      }
+      await tester.pumpWidget(app(BankCard3D(card: card, float: false)));
+      await tester.pump(const Duration(seconds: 3));
+    }
+    await tester.pumpWidget(app(BankCardWallet(cards: [for (final json in junk) BankCard.fromJson(json)])));
+    await tester.pump(const Duration(seconds: 3));
+    expect(tester.takeException(), isNull);
+  });
 }

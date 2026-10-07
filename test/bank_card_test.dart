@@ -94,11 +94,11 @@ void main() {
     expect(card.isMasked, isTrue);
   });
 
-  test('json with bin + last4, and records we cant draw', () {
+  test('json with bin + last4, other networks come out brandless', () {
     expect(BankCard.tryFromJson({'bin': '520000', 'last4': '0007'})!.number, '520000••••••0007');
-    expect(BankCard.tryFromJson({'last4': '0005', 'brand': 'amex'}), isNull);
+    expect(BankCard.tryFromJson({'last4': '0005', 'brand': 'amex'})!.brand, isNull);
     expect(BankCard.tryFromJson({'name': 'no number'}), isNull);
-    expect(BankCard.tryFromJson({'number': '6011111111111117'}), isNull);
+    expect(BankCard.tryFromJson({'number': '6011111111111117'})!.brand, isNull);
   });
 
   test('toJson leaves the cvv out and round trips', () {
@@ -122,5 +122,120 @@ void main() {
     expect(CardSkin.lerp(a, b, 0), a);
     expect(CardSkin.lerp(a, b, 1), b);
     expect(CardSkin.branded(const Color(0xFFFFFFFF)).ink, const Color(0xFF15181D));
+  });
+
+  group('the api sends something broken', () {
+    BankCard read(Object? json) => BankCard.fromJson(json);
+
+    test('only last4, no brand anywhere', () {
+      final card = read({'last4': '4242'});
+      expect(card.number, '••••••••••••4242');
+      expect(card.brand, isNull);
+      expect(card.expiry, '');
+      expect(card.holderName, '');
+    });
+
+    test('last4 in any spelling or type', () {
+      expect(read({'LAST_4': '4242'}).last4, '4242');
+      expect(read({'lastFour': 4242}).last4, '4242');
+      expect(read({'last4Digits': 42}).last4, '0042');
+      expect(read({'last4': 4242.0}).last4, '4242');
+      expect(read({'last4': '**** 4242'}).last4, '4242');
+      expect(read({'last4': '4532015112830366'}).last4, '0366');
+      expect(read({'ending_in': '٤٢٤٢'}).last4, '4242');
+    });
+
+    test('a card number that is really just the last four', () {
+      expect(read({'card_number': '4242'}).number, '••••••••••••4242');
+      expect(read({'card_number': '4242'}).brand, isNull);
+      expect(read({'CardNumber': '**** 4242'}).number, '••••••••••••4242');
+      expect(read('4242').number, '••••••••••••4242');
+      expect(read(4242).number, '••••••••••••4242');
+    });
+
+    test('nested anywhere, keys in any case', () {
+      final card = read({
+        'data': {
+          'payment_method': {
+            'card': {'Brand': 'VISA_DEBIT', 'LAST4': '4242', 'Exp-Month': '08', 'EXP_YEAR': '2029.0'},
+          },
+          'billing_details': {'name': 'Ali Hassan'},
+        },
+      });
+      expect(card.brand, CardBrand.visa);
+      expect(card.kind, CardKind.debit);
+      expect(card.last4, '4242');
+      expect(card.expiry, '08/29');
+      expect(card.holderName, 'Ali Hassan');
+    });
+
+    test('the bank name is never taken for the holder', () {
+      expect(
+        read({
+          'last4': '1111',
+          'bank': {'name': 'Rafidain Bank'},
+        }).holderName,
+        '',
+      );
+    });
+
+    test('broken expiry turns into stars, not a wrong date', () {
+      expect(read({'last4': '1', 'expiry': '13/29'}).expiry, '');
+      expect(read({'last4': '1', 'expiry': 'soon'}).expiry, '');
+      expect(read({'last4': '1', 'exp_month': 0, 'exp_year': 2029}).expiry, '');
+      expect(read({'last4': '1', 'exp_month': 8, 'exp_year': 1850}).expiry, '');
+      expect(read({'last4': '1', 'expiry': '2029/08'}).expiry, '08/29');
+      expect(read({'last4': '1', 'expires_at': '2029-08-31T00:00:00Z'}).expiry, '08/29');
+      expect(
+        read({
+          'last4': '1',
+          'expiry': {'month': 8, 'year': 29},
+        }).expiry,
+        '08/29',
+      );
+    });
+
+    test('placeholder words are treated as missing', () {
+      for (final junk in ['null', 'NULL', 'undefined', 'N/A', '-', '   ', 'none']) {
+        expect(read({'last4': '1', 'holder_name': junk}).holderName, '', reason: junk);
+      }
+      expect(read({'last4': '1', 'holder_name': '  sara\n  kareem '}).holderName, 'sara kareem');
+    });
+
+    test('brand hidden in another field', () {
+      expect(read({'last4': '1', 'product': 'Visa Platinum'}).brand, CardBrand.visa);
+      expect(read({'last4': '1', 'product': 'Visa Platinum'}).tier, CardTier.platinum);
+      expect(read({'last4': '1', 'card_type': 'MASTERCARD'}).brand, CardBrand.mastercard);
+      expect(read({'last4': '1', 'scheme': 'maestro'}).brand, isNull);
+    });
+
+    test('nothing usable still gives a card, never a crash', () {
+      for (final junk in <Object?>[
+        null,
+        '',
+        'garbage',
+        [],
+        [1, 2],
+        3.7,
+        true,
+        {},
+        {'foo': 'bar'},
+        '{"last4": "77"}',
+        '{broken json',
+      ]) {
+        expect(() => read(junk), returnsNormally, reason: '$junk');
+      }
+      expect(read(null).number, '');
+      expect(read('{"last4": "7731"}').last4, '7731');
+      expect(BankCard.tryFromJson({'foo': 'bar'}), isNull);
+    });
+
+    test('lastFour', () {
+      final card = BankCard.lastFour('4242', brand: CardBrand.visa);
+      expect(card.number, '••••••••••••4242');
+      expect(card.brand, CardBrand.visa);
+      expect(BankCard.lastFour(42).last4, '0042');
+      expect(BankCard.lastFour('4242').brand, isNull);
+    });
   });
 }

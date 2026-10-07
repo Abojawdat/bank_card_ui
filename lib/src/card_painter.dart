@@ -526,6 +526,10 @@ class CardFacePainter extends CustomPainter {
       canvas.drawCircle(c - const Offset(2.0, 0), 3.2, emblem);
       canvas.drawCircle(c + const Offset(2.0, 0), 3.2, emblem);
       canvas.drawLine(c - const Offset(5.2, 0), c + const Offset(5.2, 0), emblem);
+    } else if (card.brand == null) {
+      canvas.drawCircle(c, 3.4, emblem);
+      canvas.drawOval(Rect.fromCenter(center: c, width: 3.0, height: 6.8), emblem);
+      canvas.drawLine(c - const Offset(3.4, 0), c + const Offset(3.4, 0), emblem);
     } else {
       for (var j = 0; j < 3; j++) {
         canvas.drawPath(
