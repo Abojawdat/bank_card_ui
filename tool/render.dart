@@ -167,7 +167,7 @@ void main() {
   });
 
   testWidgets('privacy', (tester) async {
-    final lonely = BankCard.tryFromJson({'last4': '0005', 'brand': 'mastercard', 'tier': 'world'})!;
+    final lonely = BankCard.fromJson({'last4': '7731'});
     await still(
       tester,
       'privacy',
