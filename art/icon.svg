@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E1330"/>
+      <stop offset="1" stop-color="#05060D"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="0.3" cy="0.75" r="0.6">
+      <stop offset="0" stop-color="#2445B3" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#2445B3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowOrange" cx="0.8" cy="0.2" r="0.55">
+      <stop offset="0" stop-color="#FF5F00" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FF5F00" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="visa" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B4FD0"/>
+      <stop offset="0.55" stop-color="#1A2A8F"/>
+      <stop offset="1" stop-color="#0C1150"/>
+    </linearGradient>
+    <linearGradient id="master" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A2D35"/>
+      <stop offset="0.55" stop-color="#16181D"/>
+      <stop offset="1" stop-color="#07080A"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B08A3A"/>
+      <stop offset="0.45" stop-color="#FFF4C9"/>
+      <stop offset="1" stop-color="#9C7A30"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#9CC2FF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="trail2" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#FFB27A" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <clipPath id="frontClip"><rect x="-290" y="-183" width="580" height="366" rx="34"/></clipPath>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="228"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#glowBlue)"/>
+    <rect width="1024" height="1024" fill="url(#glowOrange)"/>
+
+    <g transform="translate(512 520)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="0;360" dur="9s" repeatCount="indefinite"/>
+        <ellipse rx="430" ry="150" fill="none" stroke="url(#trail)" stroke-width="13" stroke-linecap="round" stroke-dasharray="900 2000" transform="rotate(-24)"/>
+        <ellipse rx="400" ry="130" fill="none" stroke="url(#trail2)" stroke-width="8" stroke-linecap="round" stroke-dasharray="620 2000" stroke-dashoffset="1300" transform="rotate(-24)"/>
+      </g>
+    </g>
+
+    <g transform="translate(455 395) rotate(-26)">
+      <animateTransform attributeName="transform" type="translate" additive="sum" values="0 0;0 -14;0 0" dur="3.2s" repeatCount="indefinite"/>
+      <rect x="-262" y="-165" width="524" height="330" rx="31" fill="#000" opacity="0.45" transform="translate(10 18)"/>
+      <rect x="-262" y="-165" width="524" height="330" rx="31" fill="#3A3D45" transform="translate(4 7)"/>
+      <rect x="-262" y="-165" width="524" height="330" rx="31" fill="url(#master)"/>
+      <circle cx="118" cy="-92" r="52" fill="#EB001B"/>
+      <circle cx="182" cy="-92" r="52" fill="#F79E1B"/>
+      <path d="M150 -133 A52 52 0 0 1 150 -51 A52 52 0 0 1 150 -133 Z" fill="#FF5F00"/>
+      <rect x="-205" y="-95" width="78" height="60" rx="11" fill="url(#chip)" opacity="0.9"/>
+    </g>
+
+    <g transform="translate(560 610) rotate(-10)">
+      <animateTransform attributeName="transform" type="translate" additive="sum" values="0 0;0 10;0 0" dur="3.2s" repeatCount="indefinite"/>
+      <rect x="-290" y="-183" width="580" height="366" rx="34" fill="#000" opacity="0.5" transform="translate(12 22)"/>
+      <rect x="-290" y="-183" width="580" height="366" rx="34" fill="#C9D3F5" transform="translate(5 8)"/>
+      <rect x="-290" y="-183" width="580" height="366" rx="34" fill="url(#visa)"/>
+      <g clip-path="url(#frontClip)">
+        <g fill="none" stroke="#fff" stroke-opacity="0.07" stroke-width="3">
+          <circle cx="340" cy="260" r="200"/><circle cx="340" cy="260" r="250"/><circle cx="340" cy="260" r="300"/>
+        </g>
+        <rect x="-120" y="-260" width="150" height="520" fill="url(#shine)" transform="rotate(20)">
+          <animate attributeName="x" values="-560;-120;460;460" keyTimes="0;0.35;0.7;1" dur="3.2s" repeatCount="indefinite"/>
+        </rect>
+      </g>
+      <rect x="-230" y="-95" width="96" height="74" rx="13" fill="url(#chip)"/>
+      <path d="M-230 -70 H-198 M-230 -46 H-198 M-166 -70 H-134 M-166 -46 H-134 M-182 -95 V-78 M-182 -38 V-21" stroke="#76561C" stroke-width="3.5" stroke-linecap="round"/>
+      <rect x="-198" y="-78" width="32" height="40" rx="6" fill="none" stroke="#76561C" stroke-width="3.5"/>
+      <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9">
+        <path d="M-108 -80 a14 14 0 0 1 0 44"/>
+        <path d="M-92 -94 a30 30 0 0 1 0 72"/>
+        <path d="M-76 -108 a46 46 0 0 1 0 100"/>
+      </g>
+      <g fill="#E8ECF7" opacity="0.85">
+        <rect x="-230" y="22" width="88" height="22" rx="6"/><rect x="-126" y="22" width="88" height="22" rx="6"/>
+        <rect x="-22" y="22" width="88" height="22" rx="6"/><rect x="82" y="22" width="88" height="22" rx="6"/>
+      </g>
+      <text x="250" y="150" text-anchor="end" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-style="italic" font-size="112" fill="#fff" letter-spacing="-3">VISA</text>
+    </g>
+
+    <g fill="#fff">
+      <path d="M842 214 l10 26 26 10 -26 10 -10 26 -10 -26 -26 -10 26 -10 z">
+        <animate attributeName="opacity" values="0.2;1;0.2" dur="2.4s" repeatCount="indefinite"/>
+      </path>
+      <path d="M182 812 l7 18 18 7 -18 7 -7 18 -7 -18 -18 -7 18 -7 z" opacity="0.7">
+        <animate attributeName="opacity" values="1;0.2;1" dur="2.4s" repeatCount="indefinite"/>
+      </path>
+    </g>
+  </g>
+</svg>
