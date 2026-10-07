@@ -1,0 +1,41 @@
+name: release
+
+# bump `version:` in pubspec.yaml, push to main, done
+
+on:
+  push:
+    branches: [main]
+    paths: [pubspec.yaml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: tag the new version and publish it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          tag="v$version"
+          info=$(curl -s https://pub.dev/api/packages/bank_card_3d)
+          if ! echo "$info" | grep -q '"latest"'; then
+            echo "::notice::bank_card_3d isnt on pub.dev yet. Publish the first version by hand once (dart pub publish), then turn on automated publishing in the pub.dev admin tab."
+            exit 0
+          fi
+          if echo "$info" | grep -q "\"version\":\"$version\""; then
+            echo "$version is already on pub.dev"
+            exit 0
+          fi
+          if ! git rev-parse "$tag" >/dev/null 2>&1; then
+            git tag "$tag"
+            git push origin "$tag"
+          fi
+          gh workflow run publish.yml --ref "$tag"
