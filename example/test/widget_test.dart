@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('every record in the fake api parses', () {
-    expect([for (final json in api) BankCard.tryFromJson(json)], everyElement(isNotNull));
+  test('every record in the fake api turns into a card', () {
+    expect([for (final json in api) BankCard.fromJson(json).last4], everyElement(hasLength(4)));
   });
 
   testWidgets('demo opens on all three tabs and in arabic', (tester) async {

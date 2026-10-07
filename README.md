@@ -36,8 +36,8 @@
 - **A minting animation** — the card flies in, the chip drops into place, every digit is stamped one by one, the logo pops and a light sweeps across.
 - **Every tier, in its own material** — Visa Classic, Gold, Platinum, Signature, Infinite; Mastercard Standard, Gold, Platinum, World, World Elite. Plastic, brushed foil and spun black metal, each catching light as it turns.
 - **Two looks** — `CardLook.photoreal` (embossed digits, EMV chip, magstripe, hologram) and `CardLook.glass` (frosted glass over drifting light).
-- **Reads your API** — `BankCard.tryFromJson` understands `card_number`, `pan`, `masked_pan`, Stripe's `{brand, last4, exp_month}`, nested `card` objects, `08/29`, `2029-08`, Arabic digits…
-- **Null-safe display** — anything the backend didn't send is drawn as `*` stars, so a record with only `last4` still looks like a whole card.
+- **Reads your API, however broken** — `BankCard.fromJson` never throws and never returns null: any key spelling or nesting, Stripe's `{brand, last4, exp_month}`, a bare `"4242"`, a raw JSON string, `13/99` expiries, `"null"` names, Arabic digits…
+- **Null-safe display** — anything the backend didn't send is drawn as `*` stars. No brand? You get a neutral card instead of nothing.
 - **You choose what shows** — full number, last 4, masked or hidden; holder, expiry and CVV shown, masked or hidden; chip, contactless, tier and DEBIT/CREDIT labels on or off.
 - **Wallet stack** — many cards stacked like a phone wallet; they deal in, tap one to pull it out.
 - **Live entry form** — the card fills in as the user types, the brand morphs in, the card flips over for the CVV. Luhn, length and expiry validation built in.
@@ -77,12 +77,10 @@ That's all. The brand is detected from the number, the material from the tier. `
 
 ## Straight from your API
 
-Backends spell cards a hundred ways. `tryFromJson` reads the common ones and returns `null` — never throws — when a record has no usable number or isn't Visa/Mastercard.
+`BankCard.fromJson` takes whatever your backend sends and **always gives you a card** — it never throws and never returns `null`. Whatever is missing or broken is drawn as stars.
 
 ```dart
-final cards = [
-  for (final json in response['cards']) ?BankCard.tryFromJson(json),
-];
+final cards = [for (final json in response['cards']) BankCard.fromJson(json)];
 
 BankCardWallet(cards: cards)
 ```
@@ -90,23 +88,37 @@ BankCardWallet(cards: cards)
 All of these work:
 
 ```dart
-{'card_number': '4532015112830366', 'holder_name': 'Mohammad Othman', 'expiry': '08/29', 'scheme': 'VISA', 'product': 'Infinite'}
-{'masked_pan': '542523******9903', 'cardholder_name': 'SARA KAREEM', 'exp_month': 11, 'exp_year': 2028, 'level': 'world_elite'}
+{'card_number': '4532015112830366', 'holder_name': 'Mohammad Othman', 'expiry': '08/29', 'scheme': 'VISA'}
+{'masked_pan': '542523******9903', 'cardholder_name': 'SARA KAREEM', 'exp_month': 11, 'exp_year': 2028}
 {'card': {'brand': 'visa', 'last4': '4242', 'exp_month': 3, 'exp_year': 2030, 'funding': 'debit'}}   // Stripe
-{'pan': '2223003122003222', 'name': 'Noor Al-Huda', 'expiry_date': '2027-06', 'network': 'MasterCard'}
-{'last4': '0005', 'brand': 'mastercard'}                                                             // just last4
+{'data': {'payment_method': {'card': {'Brand': 'VISA_DEBIT', 'LAST4': '4242'}}}}                    // nested, any case
+{'last4': '7731'}                                                                                    // only last4, no brand
+'4242'                                                                                               // just a string
 ```
 
-| Field | Keys it looks for |
-| --- | --- |
-| number | `number` `card_number` `pan` `masked_pan` `masked_number` `card_no` — or `last4` (+ `bin` / `first6`) |
-| holder | `holder_name` `cardholder_name` `card_holder` `name_on_card` `holder` `name` |
-| expiry | `expiry` `expiry_date` `exp` `expires` `valid_thru` — or `exp_month` + `exp_year` |
-| brand | `brand` `scheme` `network` `card_brand` `type` — or detected from the number |
-| tier | `tier` `level` `product` `category` |
-| kind | `funding` `card_type` `kind` `type` |
+### When the backend gets it wrong
 
-`toJson()` writes it back as snake_case and **never includes the CVV**.
+| The API sends | The card shows |
+| --- | --- |
+| only `last4`, no brand | a neutral graphite card, `**** **** **** 7731`, no logo |
+| no holder name, or `"null"`, `"N/A"`, `"-"` | `************` |
+| no expiry, `13/99`, `soon`, year `1850` | `**/**` |
+| `last4: 42` as a number (zeros lost) | `0042` |
+| `card_number: "4242"` (really the last four) | `**** **** **** 4242`, brand not guessed from it |
+| brand inside another field (`product: "Visa Platinum"`, `card_type: "MASTERCARD"`) | the right logo and tier |
+| Amex, Discover, Maestro… | a neutral card — only Visa and Mastercard get a logo |
+| `null`, `[]`, `"garbage"`, a raw JSON string | a fully starred card / the parsed card — never a crash |
+
+Keys are matched in any case and spelling (`card_number`, `CardNumber`, `CARD-NUMBER`), at any nesting depth — but a `bank: {name: …}` is never mistaken for the holder.
+
+Building it yourself from just the last four:
+
+```dart
+BankCard.lastFour('4242')                          // brand unknown → neutral card
+BankCard.lastFour('4242', brand: CardBrand.visa)   // when you do know it
+```
+
+Need to drop records that have no number at all? `BankCard.tryFromJson(json)` returns `null` for those. `toJson()` writes a card back as snake_case and **never includes the CVV**.
 
 ---
 
@@ -135,7 +147,7 @@ BankCard3D(
 
 Ready-made: `CardDisplay()` (last four, CVV masked — the default), `CardDisplay.private` (last four only, nothing personal), `CardDisplay.everything` (all in the clear — what the form uses).
 
-**Missing data never breaks the card.** No holder name? No expiry? Only `last4`? Those spots are drawn as stars instead of leaving holes.
+**Missing data never breaks the card.** No holder name? No expiry? Only `last4`, no brand? Those spots are drawn as stars instead of leaving holes.
 
 ---
 
@@ -277,10 +289,10 @@ flutter pub add bank_card_3d
 
 ### من الـ API مباشرة
 
-`tryFromJson` تقرأ أغلب أشكال البيانات (`card_number` و `masked_pan` و `last4` و `exp_month` …) وتُرجع `null` بدل أن ترمي استثناء.
+`fromJson` تقرأ أي شكل يرسله الخادم (`card_number` و `masked_pan` و `last4` و `exp_month` …) ولا ترمي استثناء ولا تُرجع `null` أبداً. إذا أرسل الخادم آخر ٤ أرقام فقط بدون نوع البطاقة، تظهر بطاقة محايدة بدون شعار والباقي نجوم.
 
 ```dart
-final cards = [for (final json in response['cards']) ?BankCard.tryFromJson(json)];
+final cards = [for (final json in response['cards']) BankCard.fromJson(json)];
 BankCardWallet(cards: cards)
 ```
 

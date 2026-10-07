@@ -40,6 +40,10 @@ const api = [
   },
   {'number': '4024007163053426', 'holder': 'Zaid Mahmoud', 'expiry': '01/31', 'tier': 'signature'},
   {'last4': '0005', 'brand': 'mastercard', 'tier': 'world'},
+  {'last4': '7731'},
+  {
+    'data': {'CardNumber': '**** 9921', 'Exp': '13/99', 'holder_name': 'null'},
+  },
 ];
 
 Stream<Offset>? deviceTilt() {
@@ -67,7 +71,7 @@ const _text = {
     'cvv': 'CVV',
     'back': 'Back',
     'replay': 'Replay',
-    'walletHint': 'Six cards from a mixed API response, the last one only has last4. Tap one.',
+    'walletHint': 'Cards from a messy API response: no brand, no name, a broken expiry. Nothing crashes. Tap one.',
     'save': 'Save card',
     'saved': 'Saved',
     'glass': 'Glass',
@@ -84,7 +88,7 @@ const _text = {
     'cvv': 'رمز الأمان',
     'back': 'الوجه الخلفي',
     'replay': 'إعادة',
-    'walletHint': 'ست بطاقات من استجابة API مختلطة، الأخيرة فيها آخر ٤ أرقام فقط. انقر على واحدة.',
+    'walletHint': 'بطاقات من استجابة API فوضوية: بدون نوع، بدون اسم، تاريخ خاطئ. لا شيء ينهار. انقر على واحدة.',
     'save': 'حفظ البطاقة',
     'saved': 'تم الحفظ',
     'glass': 'زجاجي',
@@ -306,7 +310,7 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<WalletPage> {
-  final cards = [for (final json in api) ?BankCard.tryFromJson(json)];
+  final cards = [for (final json in api) BankCard.fromJson(json)];
   int? picked;
 
   @override
@@ -326,7 +330,11 @@ class _WalletPageState extends State<WalletPage> {
           child: Text(
             card == null
                 ? ' '
-                : [card.brand!.label, '•••• ${card.last4}', if (card.expiry.isNotEmpty) card.expiry].join(' · '),
+                : [
+                    card.brand?.label ?? 'Card',
+                    '•••• ${card.last4}',
+                    if (card.expiry.isNotEmpty) card.expiry,
+                  ].join(' · '),
             key: ValueKey(picked),
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -366,7 +374,7 @@ class _AddPageState extends State<AddPage> {
     if (!form.currentState!.validate()) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('${widget.t['saved']!} · ${card!.brand!.label} •••• ${card!.last4}')));
+    ).showSnackBar(SnackBar(content: Text('${widget.t['saved']!} · ${card!.brand?.label ?? ''} •••• ${card!.last4}')));
   }
 
   @override
